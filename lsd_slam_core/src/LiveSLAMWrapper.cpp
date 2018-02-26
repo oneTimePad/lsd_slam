@@ -40,6 +40,7 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 	this->imageStream = imageStream;
 	this->outputWrapper = outputWrapper;
 	imageStream->getBuffer()->setReceiver(this);
+	imageStream->getDepthBuffer()->setReceiver(this);
 
 	fx = imageStream->fx();
 	fy = imageStream->fy();
@@ -86,26 +87,27 @@ void LiveSLAMWrapper::Loop()
 	bool got_depth = false;
 	bool done_with_depth = false;
 	while (true) {
-		//printf("Hi\n");
+
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
 		boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
 
-		/*while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
-			//printf("Waiting...\n");
+		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
+
 			notifyCondition.wait(waitLock);
 		}
-		waitLock.unlock();*/
-		printf("Main Loop\ %d\n",imageStream->getBuffer()->size());
-		printf("Out of Frame Loop\n");
+		waitLock.unlock();
+
+
 		if(!got_depth){
-			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size() > 0)) {
-				//printf("Waiting.. %d\n",imageStream->getDepthBuffer()->size());
+			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size()) > 0) {
+
 				notifyCondition.wait(waitLockDepth);
+
 			}
 			waitLockDepth.unlock();
 			got_depth = true;
 		}
-		printf("Out of Depth Loop\n");
+
 
 
 		if(fullResetRequested)
@@ -122,7 +124,11 @@ void LiveSLAMWrapper::Loop()
 		if (got_depth && !done_with_depth) {
 			depth = imageStream->getDepthBuffer()->first();
 			imageStream->getDepthBuffer()->popFront();
+			done_with_depth = true;
 
+		}
+		if(depth != nullptr){
+			printf("non null depth\n");
 		}
 		// process image
 		//Util::displayImage("MyVideo", image.data);
@@ -151,7 +157,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	// need to initialize
 	if(!isInitialized)
 	{
-		if (depth != nullptr) {
+		if (depth == nullptr) {
 			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
 		} else {
 			monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
