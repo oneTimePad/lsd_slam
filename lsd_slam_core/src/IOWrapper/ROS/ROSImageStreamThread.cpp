@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -42,13 +42,16 @@ ROSImageStreamThread::ROSImageStreamThread()
 	// subscribe
 	vid_channel = nh_.resolveName("image");
 	vid_sub          = nh_.subscribe(vid_channel,1, &ROSImageStreamThread::vidCb, this);
-
+	depth_channel = nh_.resolveName("depth");
+	depth_sub    = nh_.subscribe(depth_channel,1, &ROSImageStreamThread::depthCb, this);
 
 	// wait for cam calib
 	width_ = height_ = 0;
 
 	// imagebuffer
 	imageBuffer = new NotifyBuffer<TimestampedMat>(8);
+	depthBuffer = new NotifyBuffer<float*>(8);
+
 	undistorter = 0;
 	lastSEQ = 0;
 
@@ -113,7 +116,7 @@ void ROSImageStreamThread::operator()()
 void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 {
 	if(!haveCalib) return;
-
+	//printf("Got Frame!\n");
 	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
 
 	if(img->header.seq < (unsigned int)lastSEQ)
@@ -139,8 +142,9 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	{
 		bufferItem.data = cv_ptr->image;
 	}
-
+	//printf("Here\n");
 	imageBuffer->pushBack(bufferItem);
+	//printf("Pushed\n");
 }
 
 void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
@@ -168,4 +172,12 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 	}
 }
 
+
+void ROSImageStreamThread::depthCb(const lsd_slam_core::DepthConstPtr msg){
+	printf("GOT A MESSAGE! HI\n");
+	printf("%f\n",msg->depth[0]);
+
+	depthBuffer->pushBack((float*)&msg->depth);
+	printf("Pushed\n");
+}
 }

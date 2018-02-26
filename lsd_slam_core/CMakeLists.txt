@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   rosbag
   cmake_modules
   lsd_slam_viewer
+  message_generation
 )
 
 find_package(Eigen3 REQUIRED)
@@ -38,6 +39,8 @@ message("-- G2O_INCLUDE_DIR : " ${G2O_INCLUDE_DIR})
 #add_definitions("-DHAVE_FABMAP")
 #set(FABMAP_LIB openFABMAP )
 
+add_message_files(DIRECTORY msg FILES Depth.msg)
+generate_messages(DEPENDENCIES)
 generate_dynamic_reconfigure_options(
   cfg/LSDDebugParams.cfg
   cfg/LSDParams.cfg

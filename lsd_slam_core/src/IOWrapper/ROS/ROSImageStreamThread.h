@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 
 #include "util/Undistorter.h"
 
-
+#include "lsd_slam_core/Depth.h"
 namespace lsd_slam
 {
 
@@ -47,22 +47,24 @@ class ROSImageStreamThread : public InputImageStream
 public:
 	ROSImageStreamThread();
 	~ROSImageStreamThread();
-	
+
 	/**
 	 * Starts the thread.
 	 */
 	void run();
-	
+
 	void setCalibration(std::string file);
 
 	/**
 	 * Thread main function.
 	 */
 	void operator()();
-	
+
 	// get called on ros-message callbacks
 	void vidCb(const sensor_msgs::ImageConstPtr img);
 	void infoCb(const sensor_msgs::CameraInfoConstPtr info);
+
+	void depthCb(const lsd_slam_core::DepthConstPtr msg);
 
 private:
 
@@ -73,6 +75,9 @@ private:
 
 	std::string vid_channel;
 	ros::Subscriber vid_sub;
+
+	std::string depth_channel;
+	ros::Subscriber depth_sub;
 
 	int lastSEQ;
 };

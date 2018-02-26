@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ class InputImageStream
 {
 public:
 	virtual ~InputImageStream() {};
-	
+
 	/**
 	 * Starts the thread.
 	 */
@@ -50,7 +50,7 @@ public:
 	 * Gets the NotifyBuffer to which incoming images are stored.
 	 */
 	inline NotifyBuffer<TimestampedMat>* getBuffer() {return imageBuffer;};
-
+	inline NotifyBuffer<float *>* getDepthBuffer() {return depthBuffer;};
 
 	/**
 	 * Gets the Camera Calibration. To avoid any dependencies, just as simple float / int's.
@@ -64,6 +64,7 @@ public:
 
 protected:
 	NotifyBuffer<TimestampedMat>* imageBuffer;
+	NotifyBuffer<float*>* depthBuffer;
 	float fx_, fy_, cx_, cy_;
 	int width_, height_;
 };

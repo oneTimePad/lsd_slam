@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -83,14 +83,31 @@ LiveSLAMWrapper::~LiveSLAMWrapper()
 
 void LiveSLAMWrapper::Loop()
 {
+	bool got_depth = false;
+	bool done_with_depth = false;
 	while (true) {
+		//printf("Hi\n");
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
-		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
+		boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
+
+		/*while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
+			//printf("Waiting...\n");
 			notifyCondition.wait(waitLock);
 		}
-		waitLock.unlock();
-		
-		
+		waitLock.unlock();*/
+		printf("Main Loop\ %d\n",imageStream->getBuffer()->size());
+		printf("Out of Frame Loop\n");
+		if(!got_depth){
+			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size() > 0)) {
+				//printf("Waiting.. %d\n",imageStream->getDepthBuffer()->size());
+				notifyCondition.wait(waitLockDepth);
+			}
+			waitLockDepth.unlock();
+			got_depth = true;
+		}
+		printf("Out of Depth Loop\n");
+
+
 		if(fullResetRequested)
 		{
 			resetAll();
@@ -98,18 +115,23 @@ void LiveSLAMWrapper::Loop()
 			if (!(imageStream->getBuffer()->size() > 0))
 				continue;
 		}
-		
+
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
-		
+		float *depth = nullptr;
+		if (got_depth && !done_with_depth) {
+			depth = imageStream->getDepthBuffer()->first();
+			imageStream->getDepthBuffer()->popFront();
+
+		}
 		// process image
 		//Util::displayImage("MyVideo", image.data);
-		newImageCallback(image.data, image.timestamp);
+		newImageCallback(image.data, image.timestamp, depth);
 	}
 }
 
 
-void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
+void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, float *depth)
 {
 	++ imageSeqNumber;
 
@@ -119,7 +141,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 		grayImg = img;
 	else
 		cvtColor(img, grayImg, CV_RGB2GRAY);
-	
+
 
 	// Assert that we work with 8 bit images
 	assert(grayImg.elemSize() == 1);
@@ -129,7 +151,11 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 	// need to initialize
 	if(!isInitialized)
 	{
-		monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
+		if (depth != nullptr) {
+			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
+		} else {
+			monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		}
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
