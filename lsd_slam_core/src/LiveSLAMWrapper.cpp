@@ -90,23 +90,24 @@ void LiveSLAMWrapper::Loop()
 
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
 		boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
-
+		printf("Waiting image...\n");
 		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
 
 			notifyCondition.wait(waitLock);
 		}
 		waitLock.unlock();
-
-
-		if(!got_depth){
+		printf("done waiting for image\n");
+		printf("Waiting depth...\n");
+		//if(!got_depth){
 			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size()) > 0) {
 
 				notifyCondition.wait(waitLockDepth);
 
 			}
 			waitLockDepth.unlock();
-			got_depth = true;
-		}
+			printf("done waiting for depth\n");
+				got_depth = true;
+		//}
 
 
 
@@ -117,22 +118,26 @@ void LiveSLAMWrapper::Loop()
 			if (!(imageStream->getBuffer()->size() > 0))
 				continue;
 		}
-
+		printf("popping image\n");
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
+		printf("popped image\n");
 		float *depth = nullptr;
-		if (got_depth && !done_with_depth) {
-			depth = imageStream->getDepthBuffer()->first();
-			imageStream->getDepthBuffer()->popFront();
-			done_with_depth = true;
+		//if (got_depth && !done_with_depth) {
+		printf("popping depth\n");
+		depth = imageStream->getDepthBuffer()->first();
+		imageStream->getDepthBuffer()->popFront();
+		printf("popped depth\n");
+		done_with_depth = true;
 
-		}
-		if(depth != nullptr){
+		//}
+		/*if(depth != nullptr){
 			printf("non null depth\n");
-		}
+		}*/
 		// process image
 		//Util::displayImage("MyVideo", image.data);
 		newImageCallback(image.data, image.timestamp, depth);
+		printf("NEW Image\n");
 	}
 }
 
@@ -167,7 +172,7 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	else if(isInitialized && monoOdometry != nullptr)
 	{
 
-		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec());
+		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(), depth);
 	}
 }
 

@@ -472,6 +472,15 @@ bool DepthMap::observeDepthUpdate(const int &x, const int &y, const int &idx, co
 	}
 }
 
+/*
+void DepthMap::propagateDepthCnn(Frame* new_keyframe)
+{
+	for(int y=0;y<height;y++)
+		for(int x=0;x<width;x++) {
+
+		}
+}*/
+
 void DepthMap::propagateDepth(Frame* new_keyframe)
 {
 	runningStats.num_prop_removed_out_of_bounds = 0;
@@ -529,11 +538,12 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 
 
 			Eigen::Vector3f pn = (trafoInv_R * Eigen::Vector3f(x*fxi + cxi,y*fyi + cyi,1.0f)) / source->idepth_smoothed + trafoInv_t;
-
+			//Eigen::Vector3f pn = (trafoInv_R * Eigen::Vector3f(x*fxi + cxi,y*fyi + cyi,1.0f)) / new_keyframe->idepth() + trafoInv_t;
 			float new_idepth = 1.0f / pn[2];
 
 			float u_new = pn[0]*new_idepth*fx + cx;
 			float v_new = pn[1]*new_idepth*fy + cy;
+
 
 			// check if still within image, if not: DROP.
 			if(!(u_new > 2.1f && v_new > 2.1f && u_new < width-3.1f && v_new < height-3.1f))
@@ -548,7 +558,7 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 			if(trackingWasGood != 0)
 			{
 				if(!trackingWasGood[(x >> SE3TRACKING_MIN_LEVEL) + (width >> SE3TRACKING_MIN_LEVEL)*(y >> SE3TRACKING_MIN_LEVEL)]
-				                    || destAbsGrad < MIN_ABS_GRAD_DECREASE)
+			)//|| destAbsGrad < MIN_ABS_GRAD_DECREASE)
 				{
 					if(enablePrintDebugInfo) runningStats.num_prop_removed_colorDiff++;
 					continue;
@@ -569,17 +579,44 @@ void DepthMap::propagateDepth(Frame* new_keyframe)
 				}
 			}
 
-			DepthMapPixelHypothesis* targetBest = otherDepthMap +  newIDX;
+			DepthMapPixelHypothesis* targetBest = otherDepthMap +  x+y*width;
 
 			// large idepth = point is near = large increase in variance.
 			// small idepth = point is far = small increase in variance.
-			float idepth_ratio_4 = new_idepth / source->idepth_smoothed;
+			//float idepth_ratio_4 = new_idepth / source->idepth_smoothed;
+			//idepth_ratio_4 *= idepth_ratio_4;
+			//idepth_ratio_4 *= idepth_ratio_4;
+
+
+			DepthMapPixelHypothesis *proj_depth = currentDepthMap + newIDX;
+			float prop_depth = 1/(proj_depth->idepth_smoothed);
+			float prop_var = 1/(proj_depth->idepth_var_smoothed);
+			float gt_depth = 1/(*(new_keyframe->idepth() + x+y*width));
+			float gt_var = pow((gt_depth-prop_depth),2);//1/(*(new_keyframe->idepthVar() + x+y*width));//prop_depth - gt_depth;
+
+			float idepth_ratio_4 = gt_depth / prop_depth;
 			idepth_ratio_4 *= idepth_ratio_4;
 			idepth_ratio_4 *= idepth_ratio_4;
+			float new_var =idepth_ratio_4*gt_var;
 
-			float new_var =idepth_ratio_4*source->idepth_var;
+			float new_depth = (gt_depth*prop_var + prop_depth*new_var)/(prop_var + new_var);
+			new_var = (new_var * prop_var)/(new_var + prop_var);
+			new_idepth = 1/ new_depth;
+			new_var = 1/new_var;
 
+			if (1/new_idepth >2 || 1/new_depth < 0.6) {
+				new_depth = 0.6;
+			}
+			//float gt_var = (*(new_keyframe->idepthVar() + x+y*width);
 
+			//float new_var = 1/(1/gt_depth - 1/new_idepth);
+			//new_idepth = (gt_depth*gt_var + new_idepth*new_var)/(new_var+gt_var);
+			//new_idepth = 1/(((1/gt_depth)*(1/gt_var) + (1/new_idepth)*(1/new_var))/((1/new_var)+(1/gt_var)));
+			//new_var = 1/(((1/new_var)*(1/gt_var))/(1/new_var+1/gt_var));
+			/*targetBest = DepthMapPixelHypothesis(
+					new_idepth,
+					new_ivar,
+					source->validity_counter);*/
 			// check for occlusion
 			if(targetBest->isValid)
 			{
@@ -962,6 +999,65 @@ void DepthMap::setFromExistingKF(Frame* kf)
 }
 
 
+void DepthMap::newKeyFrameGTDepthInit(Frame *new_frame) {
+	assert(new_frame->hasIDepthBeenSet());
+
+	//activeKeyFramelock = new_frame->getActiveLock();
+	//activeKeyFrame = new_frame;
+	//activeKeyFrameImageData = activeKeyFrame->image(0);
+	//activeKeyFrameIsReactivated = false;
+
+	const float* idepth = new_frame->idepth();
+	const float* idepthVar = new_frame->idepthVar();
+
+
+	float averageGTIDepthSum = 0;
+	int averageGTIDepthNum = 0;
+	for(int y=0;y<height;y++)
+	{
+		for(int x=0;x<width;x++)
+		{
+			float idepthValue = idepth[x+y*width];
+			if(!isnanf(idepthValue) && idepthValue > 0)
+			{
+				averageGTIDepthSum += idepthValue;
+				averageGTIDepthNum ++;
+			}
+		}
+	}
+	printf("NUM %d SUM %f\n",averageGTIDepthNum, averageGTIDepthSum);
+	//const float *currentDepthMapVar = activeKeyFrame->idepthVar();
+	//const float *currentDepthMapC = activeKeyFrame->idepth();
+
+	for(int y=0;y<height;y++)
+	{
+		for(int x=0;x<width;x++)
+		{
+			float idepthValue = (idepth[x+y*width] *currentDepthMap[x+y*width].idepth_var + currentDepthMap[x+y*width].idepth*idepthVar[x+y*width])/(idepthVar[x+y*width]+currentDepthMap[x+y*width].idepth_var);
+
+			if(!isnanf(idepthValue) && idepthValue > 0)
+			{
+				otherDepthMap[x+y*width] = DepthMapPixelHypothesis(
+						idepthValue,
+						idepthValue,
+						VAR_GT_INIT_INITIAL,
+						VAR_GT_INIT_INITIAL,
+						20);
+			}
+			else
+			{
+				//currentDepthMap[x+y*width].isValid = false;
+				//currentDepthMap[x+y*width].blacklisted = 0;
+			}
+		}
+	}
+
+
+	//activeKeyFrame->setDepth(currentDepthMap);
+	// swap!
+	std::swap(currentDepthMap, otherDepthMap);
+}
+
 void DepthMap::initializeFromGTDepth(Frame* new_frame)
 {
 	assert(new_frame->hasIDepthBeenSet());
@@ -1247,6 +1343,9 @@ void DepthMap::createKeyFrame(Frame* new_keyframe)
 
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
+	new_keyframe->setDepthFromGroundTruth(new_keyframe->gtDepth);
+	//initializeFromGTDepth(new_keyframe);
+	//newKeyFrameGTDepthInit(new_keyframe);
 	propagateDepth(new_keyframe);
 	gettimeofday(&tv_end, NULL);
 	msPropagate = 0.9*msPropagate + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);

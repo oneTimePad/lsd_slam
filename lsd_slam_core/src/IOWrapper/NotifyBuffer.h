@@ -46,7 +46,8 @@ public:
 
 protected:
 	boost::condition notifyCondition;
-	boost::condition notifyDepthCondition;
+	boost::condition notifyConditionW;
+
 };
 
 /**

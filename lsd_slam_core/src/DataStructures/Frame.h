@@ -43,7 +43,7 @@ class Frame
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	friend class FrameMemory;
-
+	float *gtDepth;
 
 	Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image);
 
@@ -276,7 +276,7 @@ private:
 	};
 	Data data;
 
-	float *gtDepth;
+
 
 	// used internally. locked while something is being built, such that no
 	// two threads build anything simultaneously. not locked on require() if nothing is changed.

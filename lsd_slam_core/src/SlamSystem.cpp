@@ -471,6 +471,8 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 
 	// propagate & make new.
 	map->createKeyFrame(newKeyframeCandidate.get());
+	// initialize from CNN depth
+	printf("Changing KeyFrame\n");
 
 	if(printPropagationStatistics)
 	{
@@ -487,6 +489,7 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 	currentKeyFrameMutex.lock();
 	currentKeyFrame = newKeyframeCandidate;
 	currentKeyFrameMutex.unlock();
+	printf("done with new key frame\n");
 }
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
@@ -784,7 +787,7 @@ bool SlamSystem::doMappingIteration()
 		{
 			finishCurrentKeyframe();
 			changeKeyframe(false, true, 1.0f);
-
+			printf("CHANGED!\n");
 
 			if (displayDepthMap || depthMapScreenshotFlag)
 				debugDisplayDepthMap();
@@ -887,10 +890,13 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 
 }
 
-void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp)
+void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp, float *depth)
 {
 	// Create new frame
 	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+
+	//set the GT depth to be used if we are changing keyFrames
+	trackingNewFrame->gtDepth = depth;
 
 	if(!trackingIsGood)
 	{
@@ -922,21 +928,26 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 	poseConsistencyMutex.lock_shared();
 	//computes cam to cam in Sim3, uses current frame(to previous frame as initial pose estimate)
 	// converts to Se3 by only extracting quaternion and translation
-	SE3 frameToReference_initialEstimate = se3FromSim3(
-			trackingReferencePose->getCamToWorld().inverse() * keyFrameGraph->allFramePoses.back()->getCamToWorld());
+	//trackingReferencePose->getCamToWorld().setScale(1);
+	//printf("Getting initial pose estimation %d\n\n",trackingReferencePose->getCamToWorld().scale());
+	/*SE3 frameToReference_initialEstimate = se3FromSim3(
+		trackingReferencePose->getCamToWorld().inverse() * keyFrameGraph->allFramePoses.back()->getCamToWorld());
+*/
+	SE3 frameToReference_initialEstimate = (se3FromSim3(trackingReferencePose->getCamToWorld())).inverse() * (se3FromSim3( keyFrameGraph->allFramePoses.back()->getCamToWorld()));
 	poseConsistencyMutex.unlock_shared();
+	printf("Finished getting initial pose estimation\n");
 
 
 
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
-
+	printf("Going to track\n");
 	SE3 newRefToFrame_poseUpdate = tracker->trackFrame(
 			trackingReference,
 			trackingNewFrame.get(),
 			frameToReference_initialEstimate);
 
-
+	printf("Finished tracking\n");
 	gettimeofday(&tv_end, NULL);
 	msTrackFrame = 0.9*msTrackFrame + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
 	nTrackFrame++;
@@ -1134,6 +1145,7 @@ void SlamSystem::testConstraint(
 		Sim3 candidateToFrame_initialEstimate,
 		float strictness)
 {
+	printf("Test constraint\n");
 	candidateTrackingReference->importFrame(candidate);
 
 	Sim3 FtoC = candidateToFrame_initialEstimate.inverse(), CtoF = candidateToFrame_initialEstimate;
@@ -1467,7 +1479,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	{
 		KFConstraintStruct* e1=0;
 		KFConstraintStruct* e2=0;
-
+		printf("Close %d\n", candidate->id());
 		testConstraint(
 				candidate, e1, e2,
 				candidateToFrame_initialEstimateMap[candidate],
@@ -1501,7 +1513,7 @@ int SlamSystem::findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forcePar
 	{
 		KFConstraintStruct* e1=0;
 		KFConstraintStruct* e2=0;
-
+		printf("Candidate %d\n", candidate->id());
 		testConstraint(
 				candidate, e1, e2,
 				Sim3(),

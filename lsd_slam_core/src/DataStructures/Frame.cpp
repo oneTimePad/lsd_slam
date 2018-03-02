@@ -269,12 +269,18 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 					pyrMaxGradient[x+y*width0] >= MIN_ABS_GRAD_CREATE &&
 					!isnanf(*depth) && *depth > 0)
 			{
-				if (*depth < 2 && *depth > 0.6) {
+				/*if (*depth < 2 && *depth > 0.6) {
 					*pyrIDepth = 1.0f / (*depth);
 				} else{
 					*pyrIDepth =  0.6;
 				}
-
+				*pyrIDepth = 10.0;*/
+				/*if(*depth < 0.6f){
+					*pyrIDepth = 0.6f;
+				} else {
+					*pyrIDepth = 1.0f/ (*depth);
+				}*/
+				*pyrIDepth = 1.0f/ (*depth);
 				*pyrIDepthVar = VAR_GT_INIT_INITIAL * cov_scale;
 			}
 			else
@@ -296,6 +302,10 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 	release(IDEPTH | IDEPTH_VAR, true, true);
 	data.hasIDepthBeenSet = true;
 }
+
+
+
+
 
 void Frame::prepareForStereoWith(Frame* other, Sim3 thisToOther, const Eigen::Matrix3f& K, const int level)
 {
