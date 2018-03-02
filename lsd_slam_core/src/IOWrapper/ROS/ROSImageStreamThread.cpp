@@ -50,7 +50,7 @@ ROSImageStreamThread::ROSImageStreamThread()
 
 	// imagebuffer
 	imageBuffer = new NotifyBuffer<TimestampedMat>(8);
-	depthBuffer = new NotifyBuffer<float*>(8);
+	depthBuffer = new NotifyBuffer<std::vector<float>>(8);
 
 	undistorter = 0;
 	lastSEQ = 0;
@@ -174,10 +174,18 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 
 
 void ROSImageStreamThread::depthCb(const lsd_slam_core::DepthConstPtr msg){
+<<<<<<< Updated upstream
 	printf("GOT A MESSAGE! HI\n");
 	//printf("%f\n",msg->depth[0]);
 
 	depthBuffer->pushBack((float*)&msg->depth);
 	printf("Pushed %d\n", depthBuffer->size());
+=======
+	//printf("GOT A MESSAGE! HI\n");
+	printf("%f\n",msg->depth[0]);
+
+	depthBuffer->pushBack(msg->depth);
+	//printf("Pushed %d\n", depthBuffer->size());
+>>>>>>> Stashed changes
 }
 }

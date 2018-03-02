@@ -121,6 +121,7 @@ void LiveSLAMWrapper::Loop()
 		printf("popping image\n");
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
+<<<<<<< Updated upstream
 		printf("popped image\n");
 		float *depth = nullptr;
 		//if (got_depth && !done_with_depth) {
@@ -134,6 +135,21 @@ void LiveSLAMWrapper::Loop()
 		/*if(depth != nullptr){
 			printf("non null depth\n");
 		}*/
+=======
+		//float[] depth = 0.0f;//nullptr;
+		float *depth = nullptr;
+		if (got_depth && !done_with_depth) {
+			depth = &imageStream->getDepthBuffer()->first()[0];
+			imageStream->getDepthBuffer()->popFront();
+			done_with_depth = true;
+
+		}
+		if(depth != nullptr){
+			printf("%f\n", *depth);
+			printf("non null depth\n");
+			//exit(0);
+		}
+>>>>>>> Stashed changes
 		// process image
 		//Util::displayImage("MyVideo", image.data);
 		newImageCallback(image.data, image.timestamp, depth);
