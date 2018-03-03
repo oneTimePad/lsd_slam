@@ -165,11 +165,11 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	// need to initialize
 	if(!isInitialized)
 	{
-		if (depth == nullptr) {
+    	//if (depth == nullptr) {
 			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		} else {
-			monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-		}
+	//} else {
+     	//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		//}
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
