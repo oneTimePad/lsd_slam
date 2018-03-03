@@ -87,17 +87,17 @@ void LiveSLAMWrapper::Loop()
 	bool got_depth = false;
 	bool done_with_depth = false;
 	while (true) {
-
+	//	printf("WTF\n");
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
 		boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
-		printf("Waiting image...\n");
+	//	printf("Waiting image...\n");
 		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
 
 			notifyCondition.wait(waitLock);
 		}
 		waitLock.unlock();
-		printf("done waiting for image\n");
-		printf("Waiting depth...\n");
+	//	printf("done waiting for image\n");
+	//	printf("Waiting depth...\n");
 		//if(!got_depth){
 			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size()) > 0) {
 
@@ -105,7 +105,7 @@ void LiveSLAMWrapper::Loop()
 
 			}
 			waitLockDepth.unlock();
-			printf("done waiting for depth\n");
+		//	printf("done waiting for depth\n");
 				got_depth = true;
 		//}
 
@@ -118,29 +118,29 @@ void LiveSLAMWrapper::Loop()
 			if (!(imageStream->getBuffer()->size() > 0))
 				continue;
 		}
-		printf("popping image\n");
+	//	printf("popping image\n");
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 
 
 		//float[] depth = 0.0f;//nullptr;
 		float *depth = nullptr;
-		if (got_depth && !done_with_depth) {
-			depth = &imageStream->getDepthBuffer()->first()[0];
-			imageStream->getDepthBuffer()->popFront();
-			done_with_depth = true;
+		//if (got_depth && !done_with_depth) {
+		depth = &imageStream->getDepthBuffer()->first()[0];
+		imageStream->getDepthBuffer()->popFront();
+		//done_with_depth = true;
 
-		}
-		if(depth != nullptr){
-			printf("%f\n", *depth);
-			printf("non null depth\n");
+		//}
+		//if(depth != nullptr){
+		//	printf("%f\n", *depth);
+		//	printf("non null depth\n");
 			//exit(0);
-		}
+		//}
 
 		// process image
 		//Util::displayImage("MyVideo", image.data);
 		newImageCallback(image.data, image.timestamp, depth);
-		printf("NEW Image\n");
+		//printf("NEW Image\n");
 	}
 }
 

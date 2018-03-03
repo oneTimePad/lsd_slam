@@ -118,7 +118,7 @@ KeyFrameGraph::~KeyFrameGraph()
 
 void KeyFrameGraph::addFrame(Frame* frame)
 {
-	printf("Made it here %d\n",frame->id());
+	//printf("Made it here %d\n",frame->id());
 	frame->pose->isRegisteredToGraph = true;
 	FramePoseStruct* pose = frame->pose;
 

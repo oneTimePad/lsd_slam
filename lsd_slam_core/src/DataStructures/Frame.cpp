@@ -260,7 +260,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 
 	int width0 = data.width[0];
 	int height0 = data.height[0];
-	//printf("FIRST VALUE %f\n", *(depth+10000));
+	printf("FIRST VALUE %f\n", *(depth+10000));
 	for(int y=0;y<height0;y++)
 	{
 		for(int x=0;x<width0;x++)

@@ -935,19 +935,19 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 */
 	SE3 frameToReference_initialEstimate = (se3FromSim3(trackingReferencePose->getCamToWorld())).inverse() * (se3FromSim3( keyFrameGraph->allFramePoses.back()->getCamToWorld()));
 	poseConsistencyMutex.unlock_shared();
-	printf("Finished getting initial pose estimation\n");
+//	printf("Finished getting initial pose estimation\n");
 
 
 
 	struct timeval tv_start, tv_end;
 	gettimeofday(&tv_start, NULL);
-	printf("Going to track\n");
+	//printf("Going to track\n");
 	SE3 newRefToFrame_poseUpdate = tracker->trackFrame(
 			trackingReference,
 			trackingNewFrame.get(),
 			frameToReference_initialEstimate);
 
-	printf("Finished tracking\n");
+	//printf("Finished tracking\n");
 	gettimeofday(&tv_end, NULL);
 	msTrackFrame = 0.9*msTrackFrame + 0.1*((tv_end.tv_sec-tv_start.tv_sec)*1000.0f + (tv_end.tv_usec-tv_start.tv_usec)/1000.0f);
 	nTrackFrame++;
@@ -1032,6 +1032,9 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 		}
 	}
 
+	if (!createNewKeyFrame) {
+		
+	}
 
 	unmappedTrackedFramesMutex.lock();
 	if(unmappedTrackedFrames.size() < 50 || (unmappedTrackedFrames.size() < 100 && trackingNewFrame->getTrackingParent()->numMappedOnThisTotal < 10))
