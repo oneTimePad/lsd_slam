@@ -260,7 +260,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 
 	int width0 = data.width[0];
 	int height0 = data.height[0];
-
+	//printf("FIRST VALUE %f\n", *(depth+10000));
 	for(int y=0;y<height0;y++)
 	{
 		for(int x=0;x<width0;x++)
@@ -269,13 +269,17 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 					pyrMaxGradient[x+y*width0] >= MIN_ABS_GRAD_CREATE &&
 					!isnanf(*depth) && *depth > 0)
 			{
-				if (*depth < 2 && *depth > 0.6) {
-					*pyrIDepth = 1.0f / (*depth);
-				} else{
-					*pyrIDepth =  0.6;
-				}
+				//if (*depth < 2 && *depth > 0.6) {
+				//if (*depth > 0.1) {
+				//	printf("WTF\n");
+				//}
+				*pyrIDepth = 1.0f / (*depth);
+				//} else{
+				//	*pyrIDepth =  0.6;
+				//}
 
 				*pyrIDepthVar = VAR_GT_INIT_INITIAL * cov_scale;
+				//*pyrIDepthVar = VAR_RANDOM_INIT_INITIAL * cov_scale;
 			}
 			else
 			{

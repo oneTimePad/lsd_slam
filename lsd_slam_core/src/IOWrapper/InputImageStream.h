@@ -50,7 +50,7 @@ public:
 	 * Gets the NotifyBuffer to which incoming images are stored.
 	 */
 	inline NotifyBuffer<TimestampedMat>* getBuffer() {return imageBuffer;};
-	inline NotifyBuffer<float *>* getDepthBuffer() {return depthBuffer;};
+	inline NotifyBuffer<std::vector<float>>* getDepthBuffer() {return depthBuffer;};
 
 	/**
 	 * Gets the Camera Calibration. To avoid any dependencies, just as simple float / int's.
@@ -64,7 +64,7 @@ public:
 
 protected:
 	NotifyBuffer<TimestampedMat>* imageBuffer;
-	NotifyBuffer<float*>* depthBuffer;
+	NotifyBuffer<std::vector<float>>* depthBuffer;
 	float fx_, fy_, cx_, cy_;
 	int width_, height_;
 };

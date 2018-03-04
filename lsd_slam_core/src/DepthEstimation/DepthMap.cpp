@@ -998,6 +998,7 @@ void DepthMap::initializeFromGTDepth(Frame* new_frame)
 
 			if(!isnanf(idepthValue) && idepthValue > 0)
 			{
+				//idepthValue = 0.5f + 1.0f * ((rand() % 100001) / 100000.0f);
 				currentDepthMap[x+y*width] = DepthMapPixelHypothesis(
 						idepthValue,
 						idepthValue,
