@@ -1,0 +1,3 @@
+<launch>
+ <node name="depth_predictor" pkg="depth" type="predict.py" output="screen"/>
+</launch>

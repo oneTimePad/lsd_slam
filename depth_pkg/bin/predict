@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+
+import depth_predictor.predict as predict
+predict.main()
