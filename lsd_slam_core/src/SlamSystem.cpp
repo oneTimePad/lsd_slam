@@ -208,16 +208,22 @@ void SlamSystem::mappingThreadLoop()
 	printf("Started mapping thread!\n");
 	while(keepRunning)
 	{
-		if (!doMappingIteration())
+		currentKeyFramesMutex.lock();
+		for(std::shared_ptr<Frame> frame: currentKeyFrames)
 		{
-			boost::unique_lock<boost::mutex> lock(unmappedTrackedFramesMutex);
-			unmappedTrackedFramesSignal.timed_wait(lock,boost::posix_time::milliseconds(200));	// slight chance of deadlock otherwise
-			lock.unlock();
-		}
 
-		newFrameMappedMutex.lock();
-		newFrameMappedSignal.notify_all();
-		newFrameMappedMutex.unlock();
+			if (!doMappingIteration(frame, latestTrackedFrames->at(frame->robotId()), currentDepthMaps->at(frame->robotId())))
+			{
+				boost::unique_lock<boost::mutex> lock(unmappedTrackedFramesMutex);
+				unmappedTrackedFramesSignal.timed_wait(lock,boost::posix_time::milliseconds(200));	// slight chance of deadlock otherwise
+				lock.unlock();
+			}
+
+			newFrameMappedMutex.lock();
+			newFrameMappedSignal.notify_all();
+			newFrameMappedMutex.unlock();
+		}
+		currentKeyFramesMutex.unlock();
 	}
 	printf("Exited mapping thread \n");
 }
@@ -392,7 +398,7 @@ void SlamSystem::requestDepthMapScreenshot(const std::string& filename)
 	depthMapScreenshotFlag = true;
 }
 
-void SlamSystem::finishCurrentKeyframe()
+void SlamSystem::finishCurrentKeyframe(Frame *currentKeyFrame, DepthMap *map)
 {
 	if(enablePrintDebugInfo && printThreadingInfo)
 		printf("FINALIZING KF %d\n", currentKeyFrame->id());
@@ -425,7 +431,7 @@ void SlamSystem::finishCurrentKeyframe()
 		outputWrapper->publishKeyframe(currentKeyFrame.get());
 }
 
-void SlamSystem::discardCurrentKeyframe()
+void SlamSystem::discardCurrentKeyframe(std::shared_ptr<Frame> currentKeyFrame, DepthMap *map)
 {
 	if(enablePrintDebugInfo && printThreadingInfo)
 		printf("DISCARDING KF %d\n", currentKeyFrame->id());
@@ -433,7 +439,7 @@ void SlamSystem::discardCurrentKeyframe()
 	if(currentKeyFrame->idxInKeyframes >= 0)
 	{
 		printf("WARNING: trying to discard a KF that has already been added to the graph... finalizing instead.\n");
-		finishCurrentKeyframe();
+		finishCurrentKeyframe(currentKeyFrame, map);
 		return;
 	}
 
@@ -455,7 +461,7 @@ void SlamSystem::discardCurrentKeyframe()
 
 }
 
-void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate)
+void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate, std::shared_ptr<Frame> currentKeyFrame, DepthMap *map)
 {
 	if(enablePrintDebugInfo && printThreadingInfo)
 		printf("CREATE NEW KF %d from %d\n", newKeyframeCandidate->id(), currentKeyFrame->id());
@@ -484,9 +490,12 @@ void SlamSystem::createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCand
 		outputWrapper->publishDebugInfo(data);
 	}
 
-	currentKeyFrameMutex.lock();
-	currentKeyFrame = newKeyframeCandidate;
-	currentKeyFrameMutex.unlock();
+	currentKeyFramesMutex.lock();
+	currentKeyFrames.at(currentKeyFrame->robotId()) = newKeyframeCandidate
+	currentKeyFramesMutex.unlock();
+	//currentKeyFrameMutex.lock();
+	//currentKeyFrame = newKeyframeCandidate;
+	//currentKeyFrameMutex.unlock();
 }
 void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 {
@@ -504,7 +513,7 @@ void SlamSystem::loadNewCurrentKeyframe(Frame* keyframeToLoad)
 	currentKeyFrameMutex.unlock();
 }
 
-void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
+void SlamSystem::changeKeyframe(std::shared_ptr<Frame> latestTrackedFrame, std::shared_ptr<Frame> currentKeyFrame, DepthMap *map, bool noCreate, bool force, float maxScore)
 {
 	Frame* newReferenceKF=0;
 	std::shared_ptr<Frame> newKeyframeCandidate = latestTrackedFrame;
@@ -531,12 +540,12 @@ void SlamSystem::changeKeyframe(bool noCreate, bool force, float maxScore)
 				printf("mapping is disabled & moved outside of known map. Starting Relocalizer!\n");
 			}
 			else
-				createNewCurrentKeyframe(newKeyframeCandidate);
+				createNewCurrentKeyframe(newKeyframeCandidate, currentKeyFrame, map);
 		}
 	}
 
 
-	createNewKeyFrame = false;
+	//createNewKeyFrame = false;
 }
 
 bool SlamSystem::updateKeyframe()
@@ -736,7 +745,7 @@ void SlamSystem::takeRelocalizeResult()
 	}
 }
 
-bool SlamSystem::doMappingIteration()
+bool SlamSystem::doMappingIteration(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<Frame> latestTrackedFrame, DepthMap *map)
 {
 	if(currentKeyFrame == 0)
 		return false;
@@ -744,14 +753,14 @@ bool SlamSystem::doMappingIteration()
 	if(!doMapping && currentKeyFrame->idxInKeyframes < 0)
 	{
 		if(currentKeyFrame->numMappedOnThisTotal >= MIN_NUM_MAPPED)
-			finishCurrentKeyframe();
+			finishCurrentKeyframe(currentKeyFrame, map);
 		else
-			discardCurrentKeyframe();
+			discardCurrentKeyframe(currentKeyFrame);
 
 		map->invalidate();
 		printf("Finished KF %d as Mapping got disabled!\n",currentKeyFrame->id());
 
-		changeKeyframe(true, true, 1.0f);
+		changeKeyframe(latestTrackedFrame, currentKeyFrame, map, true, true, 1.0f);
 	}
 
 	mergeOptimizationOffset();
@@ -771,7 +780,7 @@ bool SlamSystem::doMappingIteration()
 		{
 			//printf("tryToChange refframe, lastScore %f!\n", lastTrackingClosenessScore);
 			if(lastTrackingClosenessScore > 1)
-				changeKeyframe(true, false, lastTrackingClosenessScore * 0.75);
+				changeKeyframe(latestTrackedFrame, currentKeyFrame, map, true, false, lastTrackingClosenessScore * 0.75);
 
 			if (displayDepthMap || depthMapScreenshotFlag)
 				debugDisplayDepthMap();
@@ -780,10 +789,10 @@ bool SlamSystem::doMappingIteration()
 		}
 
 
-		if (createNewKeyFrame)
+		if (currentKeyFrame->createNewKeyFrame)
 		{
-			finishCurrentKeyframe();
-			changeKeyframe(false, true, 1.0f);
+			finishCurrentKeyframe(currentKeyFrame, map);
+			changeKeyframe(latestTrackedFrame, currentKeyFrame,map, false, true, 1.0f);
 
 
 			if (displayDepthMap || depthMapScreenshotFlag)
@@ -807,7 +816,7 @@ bool SlamSystem::doMappingIteration()
 		if(map->isValid())
 		{
 			if(currentKeyFrame->numMappedOnThisTotal >= MIN_NUM_MAPPED)
-				finishCurrentKeyframe();
+				finishCurrentKeyframe(currentKeyFrame, map);
 			else
 				discardCurrentKeyframe();
 
@@ -854,7 +863,7 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 }
 
 
-void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
+void SlamSystem::randomInit(uchar* image, double timeStamp, int id, DepthMap* map)
 {
 	printf("Doing Random initialization!\n");
 
@@ -887,10 +896,10 @@ void SlamSystem::randomInit(uchar* image, double timeStamp, int id)
 
 }
 
-void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp)
+void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp, unsigned robot_id)
 {
 	// Create new frame
-	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image));
+	std::shared_ptr<Frame> trackingNewFrame(new Frame(frameID, width, height, K, timestamp, image, robot_id));
 
 	if(!trackingIsGood)
 	{
@@ -902,8 +911,10 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 		return;
 	}
 
-	currentKeyFrameMutex.lock();
-	bool my_createNewKeyframe = createNewKeyFrame;	// pre-save here, to make decision afterwards.
+	currentKeyFramesMutex.lock();
+	//fetch the current Key Frame corresponding to this robot
+	currentKeyFrame = currentKeyFrames.at(robot_id);
+	bool my_createNewKeyframe = currentKeyFrame->createNewKeyFrame;//createNewKeyFrame;	// pre-save here, to make decision afterwards.
 	if(trackingReference->keyframe != currentKeyFrame.get() || currentKeyFrame->depthHasBeenUpdatedFlag)
 	{
 		trackingReference->importFrame(currentKeyFrame.get());
@@ -912,7 +923,7 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 	}
 
 	FramePoseStruct* trackingReferencePose = trackingReference->keyframe->pose;
-	currentKeyFrameMutex.unlock();
+	currentKeyFramesMutex.unlock();
 
 	// DO TRACKING & Show tracking result.
 	if(enablePrintDebugInfo && printThreadingInfo)
@@ -996,6 +1007,7 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 
 
 	// Keyframe selection
+	latestTrackedFrames->at(robot_id) = trackingNewFrame;
 	latestTrackedFrame = trackingNewFrame;
 	if (!my_createNewKeyframe && currentKeyFrame->numMappedOnThisTotal > MIN_NUM_MAPPED)
 	{
@@ -1008,8 +1020,8 @@ void SlamSystem::trackFrame(uchar* image, unsigned int frameID, bool blockUntilM
 
 		if (lastTrackingClosenessScore > minVal)
 		{
-			createNewKeyFrame = true;
-
+			//createNewKeyFrame = true;
+			currentKeyFrame->createKeyFrame = true;
 			if(enablePrintDebugInfo && printKeyframeSelectionInfo)
 				printf("SELECT %d on %d! dist %.3f + usage %.3f = %.3f > 1\n",trackingNewFrame->id(),trackingNewFrame->getTrackingParent()->id(), dist.dot(dist), tracker->pointUsage, trackableKeyFrameSearch->getRefFrameScore(dist.dot(dist), tracker->pointUsage));
 		}

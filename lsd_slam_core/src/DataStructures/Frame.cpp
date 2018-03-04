@@ -29,7 +29,11 @@ namespace lsd_slam
 int privateFrameAllocCount = 0;
 
 
-
+Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image, const unsigned robot_id)
+{
+	_robot_id = robot_id;
+	Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image);
+}
 
 
 Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image)

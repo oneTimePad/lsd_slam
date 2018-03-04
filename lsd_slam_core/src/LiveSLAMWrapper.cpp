@@ -97,7 +97,7 @@ void LiveSLAMWrapper::Loop()
 		}
 		waitLock.unlock();
 
-
+		/*
 		if(!got_depth){
 			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size()) > 0) {
 
@@ -106,7 +106,7 @@ void LiveSLAMWrapper::Loop()
 			}
 			waitLockDepth.unlock();
 			got_depth = true;
-		}
+		}*/
 
 
 
@@ -121,12 +121,12 @@ void LiveSLAMWrapper::Loop()
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 		float *depth = nullptr;
-		if (got_depth && !done_with_depth) {
+		/*if (got_depth && !done_with_depth) {
 			depth = imageStream->getDepthBuffer()->first();
 			imageStream->getDepthBuffer()->popFront();
 			done_with_depth = true;
 
-		}
+		}*/
 		if(depth != nullptr){
 			printf("non null depth\n");
 		}

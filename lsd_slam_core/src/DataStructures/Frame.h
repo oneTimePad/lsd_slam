@@ -44,6 +44,7 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	friend class FrameMemory;
 
+	Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image, const unsigned robot_id);
 
 	Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const unsigned char* image);
 
@@ -112,6 +113,8 @@ public:
 	inline bool* refPixelWasGood();
 	inline bool* refPixelWasGoodNoCreate();
 	inline void clear_refPixelWasGood();
+
+	inline const unsigned robotId();
 
 	/** Flags for use with require() and requirePyramid(). See the Frame class
 	  * documentation for their exact meaning. */
@@ -274,6 +277,11 @@ private:
 		// deleted as soon as frame is used for mapping.
 		bool* refPixelWasGood;
 	};
+
+	unsigned _robot_id;
+
+	bool createNewKeyFrame;
+
 	Data data;
 
 	float *gtDepth;
@@ -295,7 +303,7 @@ private:
 
 inline int Frame::id() const
 {
-	return data.id;
+	return data.id+_robot_id;
 }
 
 inline int Frame::width(int level) const
@@ -448,6 +456,12 @@ inline void Frame::clear_refPixelWasGood()
 	FrameMemory::getInstance().returnBuffer(reinterpret_cast<float*>(data.refPixelWasGood));
 	data.refPixelWasGood=0;
 }
+
+inline const unsigned Frame::robotId()
+{
+	return _robot_id;
+}
+
 
 
 }
