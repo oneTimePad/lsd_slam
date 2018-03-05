@@ -143,6 +143,7 @@ public:
 		return FrameMemory::getInstance().activateFrame(this);
 	}
 
+	bool createNewKeyFrame;
 
 	/*
 	 * ==================================================================================
@@ -280,7 +281,7 @@ private:
 
 	unsigned _robot_id;
 
-	bool createNewKeyFrame;
+
 
 	Data data;
 
@@ -303,7 +304,12 @@ private:
 
 inline int Frame::id() const
 {
-	return data.id+_robot_id;
+	return data.id;
+	//char tmp[256];
+	///char *pEnd;
+	//sprintf(tmp,"%d%d",_robot_id,data.id);
+	//return (int)strtol(tmp);
+	//return 0;
 }
 
 inline int Frame::width(int level) const

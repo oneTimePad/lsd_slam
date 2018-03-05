@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -56,13 +56,13 @@ public:
 
 	void setFrom(lsd_slam_viewer::keyframeMsgConstPtr msg);
 	void drawCam(float lineWidth = 1, float* color = 0);
-	void drawPC(float pointSize = 1, float alpha = 1);
+	void drawPC(float pointSize = 1, float alpha = 1, int mL = 0);
 	void refreshPC();
 
 	int flushPC(std::ofstream* f);
 
 
-
+	int robotId;
 	int id;
 	double time;
 
@@ -98,6 +98,3 @@ private:
 	bool glBuffersValid;		// true if the vertexBufferID contains valid data
 
 };
-
-
-

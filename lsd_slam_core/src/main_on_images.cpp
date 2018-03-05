@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -239,9 +239,11 @@ int main( int argc, char** argv )
 		assert(image.type() == CV_8U);
 
 		if(runningIDX == 0)
-			system->randomInit(image.data, fakeTimeStamp, runningIDX);
+            printf("Wow");
+			//system->randomInit(image.data, fakeTimeStamp, runningIDX);
 		else
-			system->trackFrame(image.data, runningIDX ,hz == 0,fakeTimeStamp);
+            printf("Hi");
+			//system->trackFrame(image.data, runningIDX ,hz == 0,fakeTimeStamp);
 		runningIDX++;
 		fakeTimeStamp+=0.03;
 

@@ -73,7 +73,7 @@ public:
 	SlamSystem& operator=(const SlamSystem&) = delete;
 	~SlamSystem();
 
-	void randomInit(uchar* image, double timeStamp, int id);
+	void randomInit(uchar* image, double timeStamp, int id, unsigned robotId);
 	void gtDepthInit(uchar* image, float* depth, double timeStamp, int id);
 
 
@@ -82,7 +82,8 @@ public:
 	// first frame will return Identity = camToWord.
 	// returns camToWord transformation of the tracked frame.
 	// frameID needs to be monotonically increasing.
-	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp);
+	//void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp);
+	void trackFrame(uchar* image, unsigned int frameID, bool blockUntilMapped, double timestamp, unsigned robot_id);
 
 	// finalizes the system, i.e. blocks and does all remaining loop-closures etc.
 	void finalize();
@@ -90,7 +91,7 @@ public:
 	/** Does an offline optimization step. */
 	void optimizeGraph();
 
-	inline Frame* getCurrentKeyframe() {return currentKeyFrame.get();}	// not thread-safe!
+	//inline Frame* getCurrentKeyframe() {return currentKeyFrame.get();}	// not thread-safe!
 
 	/** Returns the current pose estimate. */
 	SE3 getCurrentPoseEstimate();
@@ -101,13 +102,15 @@ public:
 	void requestDepthMapScreenshot(const std::string& filename);
 
 	//bool doMappingIteration();
-	bool doMappingIteration(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<Frame> latestTrackedFrame, DepthMap *map)
+	bool doMappingIteration(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<Frame> latestTrackedFrame, std::shared_ptr<DepthMap> map);
 
 	int findConstraintsForNewKeyFrames(Frame* newKeyFrame, bool forceParent=true, bool useFABMAP=true, float closeCandidatesTH=1.0);
 
 	bool optimizationIteration(int itsPerTry, float minChange);
 
 	void publishKeyframeGraph();
+
+	bool keyFrameExists(unsigned robotId);
 
 	std::vector<FramePoseStruct*, Eigen::aligned_allocator<lsd_slam::FramePoseStruct*> > getAllPoses();
 
@@ -117,6 +120,7 @@ public:
 	int nTrackFrame, nOptimizationIteration, nFindConstraintsItaration, nFindReferences;
 	float nAvgTrackFrame, nAvgOptimizationIteration, nAvgFindConstraintsItaration, nAvgFindReferences;
 	struct timeval lastHzUpdate;
+
 
 
 private:
@@ -130,7 +134,7 @@ private:
 
 	// ============= EXCLUSIVELY MAPPING THREAD (+ init) =============
 	//DepthMap* map;
-	std::vector<DepthMap *> currentDepthMaps; //a depth map for each Robot
+	std::vector<std::shared_ptr<DepthMap> > currentDepthMaps; //a depth map for each Robot
 	TrackingReference* mappingTrackingReference;
 
 	// during re-localization used
@@ -175,7 +179,9 @@ private:
 
 	//holds the key frames per ID
 	std::vector<std::shared_ptr<Frame>> currentKeyFrames;
-	boot::mutex currentKeyFramesMutex;
+	boost::mutex currentKeyFramesMutex;
+
+	std::vector<bool> initializedRobots;
 
 
 	// Tracking: if (!create) set candidate, set create.
@@ -200,9 +206,9 @@ private:
 
 
 	// SET & READ EVERYWHERE
-	std::shared_ptr<Frame> currentKeyFrame;	// changed (and, for VO, maybe deleted)  only by Mapping thread within exclusive lock.
+	//std::shared_ptr<Frame> currentKeyFrame;	// changed (and, for VO, maybe deleted)  only by Mapping thread within exclusive lock.
 	std::shared_ptr<Frame> trackingReferenceFrameSharedPT;	// only used in odometry-mode, to keep a keyframe alive until it is deleted. ONLY accessed whithin currentKeyFrameMutex lock.
-	boost::mutex currentKeyFrameMutex;
+	//boost::mutex currentKeyFrameMutex;
 
 
 
@@ -242,18 +248,18 @@ private:
 
 	void mappingThreadLoop();
 
-	void finishCurrentKeyframe(Frame *currentKeyFrame, DepthMap *map)
+	void finishCurrentKeyframe(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map);
 	//void finishCurrentKeyframe();
 	//void discardCurrentKeyframe();
-	void discardCurrentKeyframe(std::shared_ptr<Frame> currentKeyFrame, DepthMap *map)
+	void discardCurrentKeyframe(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map);
 
 	//void changeKeyframe(bool noCreate, bool force, float maxScore);
-	void changeKeyframe(std::shared_ptr<Frame> latestTrackedFrame, std::shared_ptr<Frame> currentKeyFrame, DepthMap *map, bool noCreate, bool force, float maxScore);
+	void changeKeyframe(std::shared_ptr<Frame> latestTrackedFrame, std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map, bool noCreate, bool force, float maxScore);
 
 	//void createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate);
-	void createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate, std::shared_ptr<Frame> currentKeyFrame, DepthMap *map)
+	void createNewCurrentKeyframe(std::shared_ptr<Frame> newKeyframeCandidate, std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map);
 
-	void loadNewCurrentKeyframe(Frame* keyframeToLoad);
+	void loadNewCurrentKeyframe(Frame* keyframeToLoad, std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map);
 
 
 	bool updateKeyframe();
@@ -262,7 +268,7 @@ private:
 
 	void debugDisplayDepthMap();
 
-	void takeRelocalizeResult();
+	void takeRelocalizeResult(std::shared_ptr<Frame> currentKeyFrame, std::shared_ptr<DepthMap> map);
 
 	void constraintSearchThreadLoop();
 	/** Calculates a scale independent error norm for reciprocal tracking results a and b with associated information matrices. */

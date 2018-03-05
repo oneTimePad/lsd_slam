@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,8 @@
 #include <iostream>
 #include <fstream>
 
-PointCloudViewer::PointCloudViewer()
+PointCloudViewer::PointCloudViewer():
+currentCamDisplay(10)
 {
 	setPathKey(Qt::Key_0,0);
 	setPathKey(Qt::Key_1,1);
@@ -56,7 +57,7 @@ PointCloudViewer::PointCloudViewer()
 	setPathKey(Qt::Key_9,9);
 
 
-	currentCamDisplay = 0;
+	//currentCamDisplay = 0;
 	graphDisplay = 0;
 
 
@@ -77,19 +78,25 @@ PointCloudViewer::PointCloudViewer()
 
 PointCloudViewer::~PointCloudViewer()
 {
-	delete currentCamDisplay;
+	//if(currentCamDisplay != 0)
+		for(KeyFrameDisplay *disp: currentCamDisplay)
+			delete disp;
 	delete graphDisplay;
 }
 
 
 void PointCloudViewer::reset()
 {
-	if(currentCamDisplay != 0)
-		delete currentCamDisplay;
+	//if(currentCamDisplay != 0)
+		for(KeyFrameDisplay *disp: currentCamDisplay)
+			if(disp != nullptr)
+				delete disp;
 	if(graphDisplay != 0)
 		delete graphDisplay;
+	printf("HERE\n");
+	currentCamDisplay.at(1) = new KeyFrameDisplay();
+	currentCamDisplay.at(2) = new KeyFrameDisplay();
 
-	currentCamDisplay = new KeyFrameDisplay();
 	graphDisplay = new KeyFrameGraphDisplay();
 
 	KFcurrent = 0;
@@ -124,12 +131,13 @@ void PointCloudViewer::addFrameMsg(lsd_slam_viewer::keyframeMsgConstPtr msg)
 
 	if(!msg->isKeyframe)
 	{
-		if(currentCamDisplay->id > msg->id)
+		printf("%d\n", msg->robotId);
+		if(currentCamDisplay.at(msg->robotId)->id > msg->id)
 		{
-			printf("detected backward-jump in id (%d to %d), resetting!\n", currentCamDisplay->id, msg->id);
+			printf("detected backward-jump in id (%d to %d), resetting!\n", currentCamDisplay.at(msg->robotId)->id, msg->id);
 			resetRequested = true;
 		}
-		currentCamDisplay->setFrom(msg);
+		currentCamDisplay.at(msg->robotId)->setFrom(msg);
 		lastAnimTime = lastCamTime = msg->time;
 		lastCamID = msg->id;
 	}
@@ -231,11 +239,22 @@ void PointCloudViewer::draw()
 
 
 
-	if(showCurrentCamera)
-		currentCamDisplay->drawCam(2*lineTesselation, 0);
+	if(showCurrentCamera){
+		int i =0;
+		for(KeyFrameDisplay *disp: currentCamDisplay ){
+			float color[] = {0,0,1};
+			if(disp != nullptr){
+				color[i] = 1;
+				disp->drawCam(2*lineTesselation, color);
+				i++;
+			}
+		}
+	}
 
-	if(showCurrentPointcloud)
-		currentCamDisplay->drawPC(pointTesselation, 1);
+	if(showCurrentPointcloud){
+		currentCamDisplay.at(1)->drawPC(pointTesselation, 1,1);
+		//currentCamDisplay.at(2)->drawPC(pointTesselation, 2,2);
+	}
 
 
 	graphDisplay->draw();
@@ -427,4 +446,3 @@ void PointCloudViewer::keyPressEvent(QKeyEvent *e)
     	  break;
     }
   }
-

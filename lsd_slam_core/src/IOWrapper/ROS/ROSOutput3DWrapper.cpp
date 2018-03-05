@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ void ROSOutput3DWrapper::publishKeyframe(Frame* f)
 
 
 	boost::shared_lock<boost::shared_mutex> lock = f->getActiveLock();
-
+	fMsg.robotId = f->robotId();
 	fMsg.id = f->id();
 	fMsg.time = f->timestamp();
 	fMsg.isKeyframe = true;
@@ -119,7 +119,7 @@ void ROSOutput3DWrapper::publishTrackedFrame(Frame* kf)
 	fMsg.id = kf->id();
 	fMsg.time = kf->timestamp();
 	fMsg.isKeyframe = false;
-
+	fMsg.robotId = kf->robotId();
 
 	memcpy(fMsg.camToWorld.data(),kf->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
 	fMsg.fx = kf->fx(publishLvl);
@@ -184,6 +184,7 @@ void ROSOutput3DWrapper::publishKeyframeGraph(KeyFrameGraph* graph)
 	GraphFramePose* framePoseData = (GraphFramePose*)gMsg.frameData.data();
 	for(unsigned int i=0;i<graph->keyframesAll.size();i++)
 	{
+		//framePoseData[i].robotId = graph->keyframesAll[i]->robotId();
 		framePoseData[i].id = graph->keyframesAll[i]->id();
 		memcpy(framePoseData[i].camToWorld, graph->keyframesAll[i]->getScaledCamToWorld().cast<float>().data(),sizeof(float)*7);
 	}

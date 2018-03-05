@@ -84,12 +84,12 @@ LiveSLAMWrapper::~LiveSLAMWrapper()
 
 void LiveSLAMWrapper::Loop()
 {
-	bool got_depth = false;
-	bool done_with_depth = false;
+	//bool got_depth = false;
+	//bool done_with_depth = false;
 	while (true) {
 
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
-		boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
+		//boost::unique_lock<boost::recursive_mutex> waitLockDepth(imageStream->getDepthBuffer()->getMutex());
 
 		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
 
@@ -120,24 +120,24 @@ void LiveSLAMWrapper::Loop()
 
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
-		float *depth = nullptr;
+		//float *depth = nullptr;
 		/*if (got_depth && !done_with_depth) {
 			depth = imageStream->getDepthBuffer()->first();
 			imageStream->getDepthBuffer()->popFront();
 			done_with_depth = true;
 
 		}*/
-		if(depth != nullptr){
-			printf("non null depth\n");
-		}
+		//if(depth != nullptr){
+		//	printf("non null depth\n");
+		//}
 		// process image
 		//Util::displayImage("MyVideo", image.data);
-		newImageCallback(image.data, image.timestamp, depth);
+		newImageCallback(image.data, image.timestamp, image.robotId);
 	}
 }
 
 
-void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, float *depth)
+void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime,  unsigned robotId)
 {
 	++ imageSeqNumber;
 
@@ -153,21 +153,21 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	assert(grayImg.elemSize() == 1);
 	assert(fx != 0 || fy != 0);
 
-
+	//printf("HERE\n");
 	// need to initialize
-	if(!isInitialized)
+	if(!monoOdometry->keyFrameExists(robotId))
 	{
-		if (depth == nullptr) {
-			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		} else {
-			monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-		}
-		isInitialized = true;
+		//if (depth == nullptr) {
+		monoOdometry->randomInit(grayImg.data, imgTime.toSec(), imageSeqNumber, robotId);
+		//} else {
+		//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		//}
+		//isInitialized = true;
 	}
-	else if(isInitialized && monoOdometry != nullptr)
+	else if( monoOdometry != nullptr)
 	{
 
-		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec());
+		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(), robotId);
 	}
 }
 

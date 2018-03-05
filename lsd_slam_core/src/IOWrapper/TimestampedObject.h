@@ -36,7 +36,7 @@ struct TimestampedObject
 {
 	T data;
 	Timestamp timestamp;
-	unsigned robot_id;
+	unsigned robotId;
 };
 
 typedef TimestampedObject< cv::Mat > TimestampedMat;

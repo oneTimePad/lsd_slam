@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -45,16 +45,29 @@ void KeyFrameGraphDisplay::draw()
 	dataMutex.lock();
 	numRefreshedAlready = 0;
 
-	// draw keyframes
-	float color[3] = {0,0,1};
+// draw keyframes
+
+	int robot1 =0;
+	int robot2 =0;
 	for(unsigned int i=0;i<keyframes.size();i++)
 	{
-		if(showKFCameras)
+		if(showKFCameras){
+			//printf("%d\n",keyframes[i]->robotId);
+			float color[3] = {0,0,0};
+			color[keyframes[i]->robotId-1] = 1;
+			printf("ROBOT ID %d\n",keyframes[i]->robotId);
 			keyframes[i]->drawCam(lineTesselation, color);
 
+			if(keyframes[i]->robotId == 1)
+				robot1++;
+			else
+				robot2++;
+		}
 		if((showKFPointclouds && (int)i > cutFirstNKf) || i == keyframes.size()-1)
 			keyframes[i]->drawPC(pointTesselation, 1);
 	}
+
+	printf("1: %d 2 %d\n",robot1, robot2);
 
 
 	if(flushPointcloud)
@@ -152,6 +165,7 @@ void KeyFrameGraphDisplay::addMsg(lsd_slam_viewer::keyframeMsgConstPtr msg)
 	}
 
 	keyframesByID[msg->id]->setFrom(msg);
+	keyframesByID[msg->id]->robotId = msg->robotId;
 	dataMutex.unlock();
 }
 
@@ -198,8 +212,12 @@ void KeyFrameGraphDisplay::addGraphMsg(lsd_slam_viewer::keyframeGraphMsgConstPtr
 		{
 		//	printf("ERROR: graph update contains pose for frame %d, but I dont have a frame %d!\n", graphPoses[i].id, graphPoses[i].id);
 		}
-		else
+		else{
 			memcpy(keyframesByID[graphPoses[i].id]->camToWorld.data(), graphPoses[i].camToWorld, 7*sizeof(float));
+			printf("HERE %p\n",keyframesByID[graphPoses[i].id]);
+			keyframesByID[graphPoses[i].id]->robotId = graphPoses[i].robotId;
+			printf("LOL\n");
+		}
 	}
 
 	dataMutex.unlock();

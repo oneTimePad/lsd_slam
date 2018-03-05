@@ -2,7 +2,7 @@
 * This file is part of LSD-SLAM.
 *
 * Copyright 2013 Jakob Engel <engelj at in dot tum dot de> (Technical University of Munich)
-* For more information see <http://vision.in.tum.de/lsdslam> 
+* For more information see <http://vision.in.tum.de/lsdslam>
 *
 * LSD-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -339,7 +339,7 @@ int KeyFrameDisplay::flushPC(std::ofstream* f)
 	return num;
 }
 
-void KeyFrameDisplay::drawPC(float pointSize, float alpha)
+void KeyFrameDisplay::drawPC(float pointSize, float alpha, int mL)
 {
 	refreshPC();
 
@@ -349,14 +349,18 @@ void KeyFrameDisplay::drawPC(float pointSize, float alpha)
 	}
 
 	GLfloat LightColor[] = {1, 1, 1, 1};
+	if (mL == 1) {
+		LightColor[mL] = 0;
+	}
+	//GLfloat LightColor[] = {1, 1, 1, 1};
 	if(alpha < 1)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		LightColor[0] = LightColor[1] = 0;
+		//LightColor[0] = LightColor[1] = 0;
 		glEnable(GL_LIGHTING);
 		glDisable(GL_LIGHT1);
-
+		LightColor[0] = LightColor[1] = LightColor[2] = 0;
 		glLightfv (GL_LIGHT0, GL_AMBIENT, LightColor);
 	}
 	else
@@ -398,4 +402,3 @@ void KeyFrameDisplay::drawPC(float pointSize, float alpha)
 		glLightfv (GL_LIGHT0, GL_AMBIENT_AND_DIFFUSE, LightColor);
 	}
 }
-

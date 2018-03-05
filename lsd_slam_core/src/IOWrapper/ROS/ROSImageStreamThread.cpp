@@ -144,7 +144,8 @@ void ROSImageStreamThread::vidCb(const sensor_msgs::ImageConstPtr img)
 	}
 
 	//retreive robot id
-	bufferItem.robot_id = img.header.frame_id;
+	bufferItem.robotId = stoi(img->header.frame_id);
+	//printf("%d\n",bufferItem.robotId);
 	//printf("Here\n");
 	imageBuffer->pushBack(bufferItem);
 	//printf("Pushed\n");
