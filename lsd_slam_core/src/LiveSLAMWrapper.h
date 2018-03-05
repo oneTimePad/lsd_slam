@@ -87,6 +87,8 @@ private:
 
 	// monoOdometry
 	SlamSystem* monoOdometry;
+	SlamSystem* monoOdometry1;
+	SlamSystem* monoOdometry2;
 
 	std::string outFileName;
 	std::ofstream* outFile;

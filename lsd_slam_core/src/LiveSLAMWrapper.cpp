@@ -62,9 +62,14 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 
 
 	// make Odometry
-	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam);
+	monoOdometry1 = new SlamSystem(width, height, K_sophus, doSlam);
 
-	monoOdometry->setVisualization(outputWrapper);
+	monoOdometry1->setVisualization(outputWrapper);
+
+	monoOdometry2 = new SlamSystem(width, height, K_sophus, doSlam);
+
+	monoOdometry2->setVisualization(outputWrapper);
+
 
 	imageSeqNumber = 0;
 }
@@ -155,19 +160,36 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime,  u
 
 	//printf("HERE\n");
 	// need to initialize
-	if(!monoOdometry->keyFrameExists(robotId))
-	{
-		//if (depth == nullptr) {
-		monoOdometry->randomInit(grayImg.data, imgTime.toSec(), imageSeqNumber, robotId);
-		//} else {
-		//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-		//}
-		//isInitialized = true;
-	}
-	else if( monoOdometry != nullptr)
-	{
+	if(robotId == 1){
+		if(!monoOdometry1->keyFrameExists(robotId))
+		{
+			//if (depth == nullptr) {
+			monoOdometry1->randomInit(grayImg.data, imgTime.toSec(), imageSeqNumber, robotId);
+			//} else {
+			//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+			//}
+			//isInitialized = true;
+		}
+		else if( monoOdometry1 != nullptr)
+		{
 
-		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(), robotId);
+			monoOdometry1->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(), robotId);
+		}
+	} else {
+		if(!monoOdometry2->keyFrameExists(robotId))
+		{
+			//if (depth == nullptr) {
+			monoOdometry2->randomInit(grayImg.data, imgTime.toSec(), imageSeqNumber, robotId);
+			//} else {
+			//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+			//}
+			//isInitialized = true;
+		}
+		else if( monoOdometry2 != nullptr)
+		{
+
+			monoOdometry2->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec(), robotId);
+		}
 	}
 }
 
