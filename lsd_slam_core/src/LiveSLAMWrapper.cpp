@@ -121,6 +121,7 @@ void LiveSLAMWrapper::Loop()
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 		//float[] depth = 0.0f;//nullptr;
+
 		float *depth = nullptr;
 		if (got_depth && !done_with_depth) {
 			depth = &imageStream->getDepthBuffer()->first()[0];
@@ -160,11 +161,11 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	// need to initialize
 	if(!isInitialized)
 	{
-		if (depth == nullptr) {
+		//if (depth == nullptr) {
 			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		} else {
-			monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-		}
+		///} else {
+		//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+	//	}
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
