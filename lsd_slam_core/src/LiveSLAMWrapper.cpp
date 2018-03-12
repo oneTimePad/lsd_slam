@@ -124,12 +124,13 @@ void LiveSLAMWrapper::Loop()
 
 
 		//float[] depth = 0.0f;//nullptr;
-		float *depth = nullptr;
+		//float *depth = nullptr;
 		//if (got_depth && !done_with_depth) {
-		depth = &imageStream->getDepthBuffer()->first()[0];
+		//depth = &imageStream->getDepthBuffer()->first()[0];
+		std::vector<float> depth = imageStream->getDepthBuffer()->first();
 		imageStream->getDepthBuffer()->popFront();
+		float* depth_array = &depth[0];
 		//done_with_depth = true;
-
 		//}
 		//if(depth != nullptr){
 		//	printf("%f\n", *depth);
@@ -139,7 +140,7 @@ void LiveSLAMWrapper::Loop()
 
 		// process image
 		//Util::displayImage("MyVideo", image.data);
-		newImageCallback(image.data, image.timestamp, depth);
+		newImageCallback(image.data, image.timestamp, depth_array);
 		//printf("NEW Image\n");
 	}
 }
@@ -165,11 +166,11 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	// need to initialize
 	if(!isInitialized)
 	{
-    	//if (depth == nullptr) {
+    	if (depth == nullptr) {
 			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-	//} else {
-     	//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-		//}
+	} else {
+     	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		}
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)

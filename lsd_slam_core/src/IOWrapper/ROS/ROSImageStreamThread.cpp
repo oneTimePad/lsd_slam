@@ -173,13 +173,11 @@ void ROSImageStreamThread::infoCb(const sensor_msgs::CameraInfoConstPtr info)
 }
 
 
-void ROSImageStreamThread::depthCb(const lsd_slam_core::DepthConstPtr msg){
-
-	//printf("GOT A MESSAGE! HI\n");
-	printf("%f\n",msg->depth[0]);
-
-	depthBuffer->pushBack(msg->depth);
-	//printf("Pushed %d\n", depthBuffer->size());
+void ROSImageStreamThread::depthCb(const lsd_slam_core::DepthConstPtr msg)
+{
+	const std::vector<float>& depth = msg->depth;
+	depthBuffer->pushBack(depth);
 
 }
+
 }
