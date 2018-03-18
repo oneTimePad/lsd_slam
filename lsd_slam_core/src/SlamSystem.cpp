@@ -832,9 +832,20 @@ void SlamSystem::gtDepthInit(uchar* image, float* depth, double timeStamp, int i
 {
 	printf("Doing GT initialization!\n");
 
-	currentKeyFrameMutex.lock();
 
+	currentKeyFrameMutex.lock();
+	float sum = 0;
+	for (int i  =0 ; i< 640*480; i++) {
+		sum+=depth[i];
+	}
 	currentKeyFrame.reset(new Frame(id, width, height, K, timeStamp, image));
+	//Frame* lol = new Frame(id, width, height, K, timeStamp, image);
+
+	float sum2 = 0;
+	for (int i  =0 ; i< 640*480; i++) {
+		sum2+=depth[i];
+	}
+	//printf("%f %f %p\n", sum , sum2, lol);
 	currentKeyFrame->setDepthFromGroundTruth(depth);
 
 	map->initializeFromGTDepth(currentKeyFrame.get());

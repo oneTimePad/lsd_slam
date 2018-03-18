@@ -37,6 +37,7 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 	initialize(id, width, height, K, timestamp);
 
 	data.image[0] = FrameMemory::getInstance().getFloatBuffer(data.width[0]*data.height[0]);
+	printf("%p\n", data.image[0]);
 	float* maxPt = data.image[0] + data.width[0]*data.height[0];
 
 	for(float* pt = data.image[0]; pt < maxPt; pt++)
@@ -51,6 +52,7 @@ Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double tim
 
 	if(enablePrintDebugInfo && printMemoryDebugInfo)
 		printf("ALLOCATED frame %d, now there are %d\n", this->id(), privateFrameAllocCount);
+
 }
 
 Frame::Frame(int id, int width, int height, const Eigen::Matrix3f& K, double timestamp, const float* image)
@@ -261,6 +263,7 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 	int width0 = data.width[0];
 	int height0 = data.height[0];
 	//printf("FIRST VALUE %f\n", *(depth+10000));
+	printf("%d %d\n", height0, width0);
 	for(int y=0;y<height0;y++)
 	{
 		for(int x=0;x<width0;x++)
@@ -273,13 +276,16 @@ void Frame::setDepthFromGroundTruth(const float* depth, float cov_scale)
 				//if (*depth > 0.1) {
 				//	printf("WTF\n");
 				//}
+				//if(*depth > 2) {
+				//	printf("ERRROR %f\n", *depth);
+				///}
 				*pyrIDepth = 1.0f / (*depth);
 				//} else{
 				//	*pyrIDepth =  0.6;
 				//}
 
 				*pyrIDepthVar = VAR_GT_INIT_INITIAL * cov_scale;
-				//*pyrIDepthVar = VAR_RANDOM_INIT_INITIAL * cov_scale;
+				*pyrIDepthVar = VAR_RANDOM_INIT_INITIAL * cov_scale;
 			}
 			else
 			{

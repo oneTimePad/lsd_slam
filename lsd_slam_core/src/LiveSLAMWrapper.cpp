@@ -99,7 +99,7 @@ void LiveSLAMWrapper::Loop()
 
 
 		if(!got_depth){
-			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size()) > 0) {
+			while (!fullResetRequested && !(imageStream->getDepthBuffer()->size() > 0)) {
 
 				notifyCondition.wait(waitLockDepth);
 
@@ -122,21 +122,33 @@ void LiveSLAMWrapper::Loop()
 		imageStream->getBuffer()->popFront();
 		//float[] depth = 0.0f;//nullptr;
 
-		float *depth = nullptr;
+		float *depth_array= nullptr;
+		std::vector<float> depth;
 		if (got_depth && !done_with_depth) {
-			depth = &imageStream->getDepthBuffer()->first()[0];
-			imageStream->getDepthBuffer()->popFront();
+			/*depth = &imageStream->getDepthBuffer()->first()[0];
+			imageStream->getDepthBuffer()->popFront();*/
+			depth = imageStream->getDepthBuffer()->first();
+		  imageStream->getDepthBuffer()->popFront();
+		  depth_array = &depth[0];
 			done_with_depth = true;
+			for (int i  =0 ; i< 640*480; i++) {
+				if(depth_array[i] >2 ){
+					printf("ERROR\n");
+				}
+			}
 
+			float sum = 0;
+			for (int i  =0 ; i< 640*480; i++) {
+				sum+=depth[i];
+			}printf("SUM %f\n", sum);
+
+			printf("PTR%p\n", depth_array);
 		}
-		if(depth != nullptr){
-			printf("%f\n", *depth);
-			printf("non null depth\n");
-			//exit(0);
-		}
+
+
 		// process image
 		//Util::displayImage("MyVideo", image.data);
-		newImageCallback(image.data, image.timestamp, depth);
+		newImageCallback(image.data, image.timestamp, depth_array);
 	}
 }
 
@@ -161,11 +173,16 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime, fl
 	// need to initialize
 	if(!isInitialized)
 	{
-		//if (depth == nullptr) {
+	 if (depth == nullptr) {
 			monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
-		///} else {
-		//	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
-	//	}
+		} else {
+			for (int i  =0 ; i< 640*480; i++) {
+				if(depth[i] >2 ){
+					printf("ERROR1\n");
+				}
+			}
+	  	monoOdometry->gtDepthInit(grayImg.data, depth, imgTime.toSec(), 1);
+		}
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
